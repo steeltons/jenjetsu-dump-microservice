@@ -53,7 +53,12 @@ public class AbonentServiceImpl implements AbonentService {
     @Override
     @Transactional(rollbackOn = Exception.class)
     public void createAll(Collection<AbonentDto> abonents) {
-        abonents.forEach(abonent -> abonentRep.save(abonent.convetToAbonent()));
+        abonents.forEach(abonent -> {
+            if(!abonent.isValid() || isExistByPhoneNumber(abonent.numberPhone())) {
+                throw new IllegalArgumentException("Abonent is not valid or exist");
+            }
+            abonentRep.save(abonent.convetToAbonent());
+        });
     }
 
     @Override
@@ -143,6 +148,7 @@ public class AbonentServiceImpl implements AbonentService {
         List<AbonentPayloadDto> dtos = payloads.stream().map(p -> new AbonentPayloadDto(p.getCallType(), p.getStartTime(),
                 p.getEndTime(), p.getDuration(), p.getCost())).collect(Collectors.toList());
         double sum = dtos.stream().reduce(0.0, (temp, dto2) -> temp + dto2.cost(), Double::sum);
+        sum += tariff.getBasicPrice();
         return new ReportDto(abonent.getId(), abonent.getPhoneNumber(), dtos, sum, tariff.getMonetaryUnit());
     }
 }

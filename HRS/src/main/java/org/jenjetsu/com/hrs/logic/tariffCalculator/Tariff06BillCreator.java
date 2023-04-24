@@ -44,17 +44,18 @@ public class Tariff06BillCreator implements TariffBillsCreator{
             if(callBuffer != null && !callBuffer.minusSeconds(callingDuration).isNegative()) {
                 sum += TimeConverter.ceilSecondsToMinutes(callingDuration) *
                         (payload.getCallType() == 1 ? inconigBufferCost : outcomingBufferCost);
-                callBuffer = callBuffer.minusSeconds(TimeConverter.ceilSecondsToMinutes(callingDuration));
+                callBuffer = callBuffer.minusSeconds(callingDuration);
             } else {
                 long lastBufferSeconds = 0;
                 if(callBuffer != null) {
-                    lastBufferSeconds = callingDuration - callBuffer.getSeconds();
+                    lastBufferSeconds = callBuffer.getSeconds();
                     callBuffer = null;
-                    sum += TimeConverter.ceilSecondsToMinutes(lastBufferSeconds) *
-                            (payload.getCallType() == 1 ? inconigBufferCost : outcomingBufferCost);
-                    sum += TimeConverter.ceilSecondsToMinutes(callingDuration) *
-                            (payload.getCallType() == 1 ? incomingCost : outcomingCost);
                 }
+                callingDuration -= lastBufferSeconds;
+                sum += TimeConverter.ceilSecondsToMinutes(lastBufferSeconds) *
+                        (payload.getCallType() == 1 ? inconigBufferCost : outcomingBufferCost);
+                sum += TimeConverter.ceilSecondsToMinutes(callingDuration) *
+                        (payload.getCallType() == 1 ? incomingCost : outcomingCost);
             }
             payload.setCost(sum);
             payloads.add(payload);
