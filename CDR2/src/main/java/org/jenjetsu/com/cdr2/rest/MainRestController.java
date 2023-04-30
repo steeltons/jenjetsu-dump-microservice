@@ -2,11 +2,10 @@ package org.jenjetsu.com.cdr2.rest;
 
 import org.jenjetsu.com.cdr2.logic.AbonentGenerator;
 import org.jenjetsu.com.cdr2.logic.CdrCreator;
+import org.jenjetsu.com.core.dto.PhoneNumbersDto;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <h2>Main Rest Controller</h2>
@@ -34,6 +33,13 @@ public class MainRestController {
         return ResponseEntity.ok()
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(cdrCreator.createCdrFile());
+    }
+
+    @PostMapping("/generate-calls")
+    public ResponseEntity<?> generateCalls(@RequestBody PhoneNumbersDto phoneNumbersDto) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(cdrCreator.createCdrFileByPhoneNumbers(phoneNumbersDto));
     }
 
     @GetMapping("/generate")
