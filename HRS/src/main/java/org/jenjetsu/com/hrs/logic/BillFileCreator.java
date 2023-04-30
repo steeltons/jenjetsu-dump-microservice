@@ -1,16 +1,16 @@
 package org.jenjetsu.com.hrs.logic;
 
 import org.jenjetsu.com.core.entity.AbonentPayload;
+import org.jenjetsu.com.core.entity.BillEntity;
 import org.jenjetsu.com.core.entity.CallInformation;
 import org.jenjetsu.com.hrs.logic.entity.CdrPlusEntity;
 import org.jenjetsu.com.hrs.logic.tariffCalculator.TariffBillsCreator;
-import org.jenjetsu.com.hrs.util.AbonentPayloadParser;
 import org.springframework.context.ApplicationContext;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,24 +35,22 @@ public class BillFileCreator {
     }
 
     /**
-     * <h2>Create bill file</h2>
-     * Method that create bill file for Abonent from cdr plus file
-     * @param cdrPlusFile
-     * @return
+     * <h3>Create bill file</h3>
+     * Method which create bill file
+     * @param cdrPlusFile - cdr+ byte file
+     * @return billFilePath - path to bill file
      */
     public Resource createBillFile(MultipartFile cdrPlusFile) {
-        CdrPlusEntity cdrPlusEntity = cdrPlusFileParser.parseFile(cdrPlusFile);
-        TariffBillsCreator tariffBillsCreator = getTariffBiller(cdrPlusEntity.getTariffId());
-        List<CallInformation> sortedCalls =
-                cdrPlusEntity.getCalls().stream()
-                        .sorted((c1, c2) -> c1.getStartCallingTime().compareTo(c2.getStartCallingTime()))
-                        .collect(Collectors.toList());
-
-        List<AbonentPayload> filledPayloads = tariffBillsCreator.billPayloads(cdrPlusEntity.getTariffId(), sortedCalls);
-
-        String tariffId = cdrPlusEntity.getTariffId();
-        Long phoneNumber = cdrPlusEntity.getPhoneNumber();
-        Resource billFile = billFileWriter.writeToFile(phoneNumber, tariffId, filledPayloads);
+        List<CdrPlusEntity> cdrPlusEntities = cdrPlusFileParser.parseCdrPlusFile(cdrPlusFile);
+        List<BillEntity> billEntities = new ArrayList<>();
+        cdrPlusEntities.forEach(cdrEntity -> {
+            TariffBillsCreator biller = getTariffBiller(cdrEntity.getTariffId());
+            cdrEntity.getCalls().sort((c1, c2) -> c1.getStartCallingTime().compareTo(c2.getStartCallingTime()));
+            BillEntity entity = biller.billPayloads(cdrEntity.getPhoneNumber(), cdrEntity.getTariffId(), cdrEntity.getCalls());
+            billEntities.add(entity);
+        });
+        Resource billFile = billFileWriter.writeBillToResource(billEntities);
+        billFileWriter.writeToFile(billFile);
         return billFile;
     }
 

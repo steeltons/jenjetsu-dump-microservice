@@ -1,11 +1,9 @@
 package org.jenjetsu.com.hrs.logic.tariffCalculator;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jenjetsu.com.core.entity.AbonentPayload;
-import org.jenjetsu.com.core.entity.CallInformation;
-import org.jenjetsu.com.core.entity.Tariff;
+import org.jenjetsu.com.core.entity.*;
 import org.jenjetsu.com.core.service.TariffService;
-import org.jenjetsu.com.hrs.util.AbonentPayloadParser;
+import org.jenjetsu.com.core.util.AbonentPayloadParser;
 import org.jenjetsu.com.hrs.util.TimeConverter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -32,8 +30,9 @@ public class Tariff11BillCreator implements TariffBillsCreator{
 
 
     @Override
-    public List<AbonentPayload> billPayloads(String tariffId, List<CallInformation> calls) {
-        prepareTariffBiller(tariffId);
+    public BillEntity billPayloads(Long phoneNumber, String tariffId, List<CallInformation> calls) {
+        Tariff tariff = tariffService.findById(tariffId);
+        prepareTariffBiller(tariff);
         List<AbonentPayload> payloads = new ArrayList<>();
         for(CallInformation call : calls) {
             long callingDuration = call.getCallDurationInSeconds();
@@ -42,31 +41,35 @@ public class Tariff11BillCreator implements TariffBillsCreator{
             if(payload.getCallType() == 1) {
                 if(callBuffer != null && !callBuffer.minusSeconds(callingDuration).isNegative()) {
                     callBuffer = callBuffer.minusSeconds(callingDuration);
-                    sum += TimeConverter.ceilSecondsToMinutes(callingDuration) * inconigBufferCost;
+                    sum += TimeConverter.ceilSecondsToMinutes(callingDuration) * outcomingBufferCost;
                 } else {
                     long lastBufferSeconds = 0;
                     if(callBuffer != null) {
-                        lastBufferSeconds = callingDuration - callBuffer.getSeconds();
+                        lastBufferSeconds = callBuffer.getSeconds();
                         callBuffer = null;
                     }
-                    sum += TimeConverter.ceilSecondsToMinutes(lastBufferSeconds) * inconigBufferCost;
-                    sum += TimeConverter.ceilSecondsToMinutes(callingDuration) *  incomingCost;
+                    sum += TimeConverter.ceilSecondsToMinutes(lastBufferSeconds) * outcomingBufferCost;
+                    sum += TimeConverter.ceilSecondsToMinutes(Math.abs(callingDuration - lastBufferSeconds)) *  outcomingCost;
                 }
             }
             payload.setCost(sum);
             payloads.add(payload);
         }
-        return payloads;
+        double totalSum = payloads.stream().reduce(0.0, (accumulator, payload) -> accumulator + payload.getCost(),
+                Double::sum);
+        totalSum += tariff.getBasicPrice();
+        totalSum = Math.ceil(totalSum * 100) / 100.0;
+        return new BillEntity(phoneNumber, tariffId, payloads, totalSum, tariff.getMonetaryUnit());
     }
 
-    private void prepareTariffBiller(String tariffId) {
-        Tariff tariff = tariffService.findById(tariffId);
+    private void prepareTariffBiller(Tariff tariff) {
         incomingCost = tariff.getInputCost();
         outcomingCost = tariff.getOutputCost();
+        TariffOption newestOption = tariff.getLatestOption();
         if(tariff.getOptions() != null) {
-            inconigBufferCost = tariff.getOptions().getIncomingBufferCost();
-            outcomingBufferCost = tariff.getOptions().getOutcomingBufferCost();
-            callBuffer = Duration.ofMinutes(tariff.getOptions().getTariffDurationMinutes());
+            inconigBufferCost = newestOption.getIncomingBufferCost();
+            outcomingBufferCost = newestOption.getOutcomingBufferCost();
+            callBuffer = Duration.ofMinutes(newestOption.getTariffDurationMinutes());
         }
     }
 }

@@ -1,44 +1,46 @@
 package org.jenjetsu.com.hrs;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jenjetsu.com.core.entity.*;
+import org.jenjetsu.com.core.entity.BillEntity;
+import org.jenjetsu.com.core.entity.CallInformation;
+import org.jenjetsu.com.core.entity.Tariff;
+import org.jenjetsu.com.core.entity.TariffOption;
 import org.jenjetsu.com.core.service.TariffService;
-import org.jenjetsu.com.hrs.logic.tariffCalculator.Tariff06BillCreator;
 import org.jenjetsu.com.core.util.CallInformationParser;
+import org.jenjetsu.com.hrs.logic.tariffCalculator.Tariff11BillCreator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @Slf4j
-public class Tariff06Test {
+public class Tariff11Test {
 
     @Mock
     private TariffService tariffService;
-    @InjectMocks
-    private Tariff06BillCreator tariff06BillCreator;
-    private TariffOption nativeTariffOption = new TariffOption(0l, null, 0, 0, 300, false);
-    private Tariff nativeTariff = new Tariff("06", 100, 1, 1, Arrays.asList(nativeTariffOption), "rubbles");
-    private TariffOption updatedTariffOptions = new TariffOption(0l, null, 0.2, 0.5, 50, false);
-    private Tariff updatedTariff = new Tariff("06", 100, 2, 2.5, Arrays.asList(updatedTariffOptions), "krones");
+    private Tariff11BillCreator tariff11BillCreator;
+
+    private TariffOption nativeTariffOption = new TariffOption(0l, null, 0, 0.5, 100, false);
+    private Tariff nativeTariff = new Tariff("11", 0, 0, 1.5, Arrays.asList(nativeTariffOption), "rubbles");
+    private TariffOption updatedTariffOption = new TariffOption(0l, null, 0, 1.5, 200, false);
+    private Tariff updatedTariff = new Tariff("11", 25, 0, 2, Arrays.asList(updatedTariffOption), "krone");
 
     @BeforeEach
-    public void init() {
+    void init() {
         when(tariffService.findById(any())).thenReturn(nativeTariff);
-        tariff06BillCreator = new Tariff06BillCreator(tariffService);
+        tariff11BillCreator = new Tariff11BillCreator(tariffService);
     }
 
     @Test
@@ -46,8 +48,8 @@ public class Tariff06Test {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "100 min input call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 100.0, "rubbles");
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 0, "rubbles");
     }
 
     @Test
@@ -55,8 +57,8 @@ public class Tariff06Test {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "100 min output call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 100.0, "rubbles");
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 50.0, "rubbles");
     }
 
     @Test
@@ -64,8 +66,8 @@ public class Tariff06Test {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "300 min input call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 100.0, "rubbles");
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 0.0, "rubbles");
     }
 
     @Test
@@ -73,66 +75,46 @@ public class Tariff06Test {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "300 min output call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 100.0, "rubbles");
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 350.0, "rubbles");
     }
 
     @Test
-    public void onlyInput300Min59SecCallsTest() {
+    public void onlyInput100Min30SecCallsTest() {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
-                "300 min 59 sec input call file test.txt");
+                "100 min 30 sec input call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 101.0, "rubbles");
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 0.0, "rubbles");
     }
 
     @Test
-    public void onlyOutput300Min1SecCallsTest() {
+    public void onlyOutput100Min30SecCallsTest() {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
-                "300 min 1 sec output call file test.txt");
+                "100 min 30 sec output call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 101.0, "rubbles");
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 52.0, "rubbles");
     }
 
     @Test
-    public void updatedTariffOnlyInputTest() {
+    public void updatedTariffInputCallsTest() {
         when(tariffService.findById(any())).thenReturn(updatedTariff);
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "100 min input call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 210.0, updatedTariff.getMonetaryUnit());
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 25.0, updatedTariff.getMonetaryUnit());
     }
 
     @Test
-    public void updatedTariffOnlyOutputTest() {
+    public void updatedTariffOutputCallsTest() {
         when(tariffService.findById(any())).thenReturn(updatedTariff);
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "100 min output call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 250, updatedTariff.getMonetaryUnit());
-    }
-
-    @Test
-    public void updatedTariff300MinInputCallsTest() {
-        when(tariffService.findById(any())).thenReturn(updatedTariff);
-        List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
-                "300 min input call file test.txt");
-        Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 610, updatedTariff.getMonetaryUnit());
-    }
-
-    @Test
-    public void updatedTariff300MinOutputCallsTest() {
-        when(tariffService.findById(any())).thenReturn(updatedTariff);
-        List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
-                "300 min output call file test.txt");
-        Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 750, updatedTariff.getMonetaryUnit());
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 175.0, updatedTariff.getMonetaryUnit());
     }
 
     @Test
@@ -141,8 +123,8 @@ public class Tariff06Test {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "300 min 59 sec input call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 612.0, updatedTariff.getMonetaryUnit());
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 25.0, updatedTariff.getMonetaryUnit());
     }
 
     @Test
@@ -151,8 +133,8 @@ public class Tariff06Test {
         List<CallInformation> calls = getCallsFromFile("src/test/resources/phone calls file tests/" +
                 "300 min 1 sec output call file test.txt");
         Long phoneNumber = calls.get(0).getPhoneNumber();
-        BillEntity bill = tariff06BillCreator.billPayloads(phoneNumber, "06", calls);
-        assertBill(bill, phoneNumber, "06", 752.5, updatedTariff.getMonetaryUnit());
+        BillEntity bill = tariff11BillCreator.billPayloads(phoneNumber, "11", calls);
+        assertBill(bill, phoneNumber, "11", 528.5, updatedTariff.getMonetaryUnit());
     }
 
     private void assertBill(BillEntity bill, long expPhone, String expTariffId, double expSum, String expMonetaryUnit) {
