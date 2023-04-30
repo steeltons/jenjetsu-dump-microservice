@@ -74,4 +74,9 @@ public class AbonentPayloadServiceImlp implements AbonentPayloadService {
     public void deleteAll() {
         payloadRep.deleteAll();
     }
+
+    @Override
+    public List<AbonentPayload> findMyPayloads(Long phoneNumber) {
+        return payloadRep.findAbonentPayloadByAbonentPhoneNumber(phoneNumber);
+    }
 }

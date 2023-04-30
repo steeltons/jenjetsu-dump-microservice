@@ -14,8 +14,8 @@ public class TariffOption {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long optionId;
-    @OneToOne(optional = false)
-    @JoinColumn(name = "tariff_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tariff_id", nullable = false, unique = false)
     private Tariff tariff;
     @Column(name = "incoming_buffer_cost", nullable = false)
     private double incomingBufferCost;

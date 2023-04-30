@@ -13,11 +13,9 @@ public interface AbonentService extends ReadDao<Abonent, Long>,
 
     public boolean isExistByPhoneNumber(Long phoneNumber);
     public boolean isExistById(Long id);
-    public void authorizeAbonents();
     public PaymentDTO addMoney(AbonentDto dto);
     public ChangeTariffDto changeTariff(AbonentDto dto);
     public Abonent removeMoney(AbonentDto dto);
     public Abonent findByPhoneNumber(Long phoneNumber);
 
-    public ReportDto getMyPayloads(Long phoneNumber);
 }

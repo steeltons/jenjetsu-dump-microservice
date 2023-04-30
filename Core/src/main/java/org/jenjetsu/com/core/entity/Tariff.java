@@ -24,9 +24,12 @@ public class Tariff {
     private double inputCost;
     @Min(0)
     private double outputCost;
-    @OneToOne(optional = true, fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "tariff")
-    private TariffOption options;
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "tariff")
+    private List<TariffOption> options;
     @Column(name = "monetary_unit", nullable = false, length = 12)
     private String monetaryUnit;
 
+    public TariffOption getLatestOption() {
+        return options.stream().sorted((o1, o2) -> (int) (o2.getOptionId() - o1.getOptionId())).findFirst().orElse(null);
+    }
 }
