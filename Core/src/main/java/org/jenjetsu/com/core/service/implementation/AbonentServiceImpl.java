@@ -135,7 +135,7 @@ public class AbonentServiceImpl implements AbonentService {
     @CacheEvict(key = "#id")
     public boolean deleteById(Long id) {
         boolean res = false;
-        if(isExistById(id)) {
+        if(isExistByPhoneNumber(id)) {
             abonentRep.deleteById(id);
         }
         return res;

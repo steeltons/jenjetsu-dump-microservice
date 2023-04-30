@@ -12,4 +12,5 @@ public interface AbonentRepository extends JpaRepository<Abonent, Long> {
     public void deleteByBalanceLessThan(double lessSum);
     public Optional<Abonent> findByPhoneNumber(Long PhoneNumber);
     public boolean existsByPhoneNumber(Long phoneNumber);
+    public void deleteByPhoneNumber(Long phoneNumber);
 }
