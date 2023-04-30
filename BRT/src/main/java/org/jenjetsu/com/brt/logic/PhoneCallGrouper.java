@@ -1,6 +1,8 @@
 package org.jenjetsu.com.brt.logic;
 
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.jenjetsu.com.core.exception.CdrPlusCreateException;
 import org.jenjetsu.com.core.service.AbonentService;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -13,6 +15,7 @@ import java.util.*;
  * Class which groups calls by phone numbers
  */
 @Service
+@Slf4j
 public class PhoneCallGrouper {
 
     private final AbonentService abonentService;
@@ -24,23 +27,26 @@ public class PhoneCallGrouper {
     /**
      * <h2>Group phone Calls By Phone</h2>
      * Method for group phone calls by phone numbers
-     * @param cdr - file resource
+     * @param resource - byte file
      * @return Map that grouped by phone numbers
      */
-    @SneakyThrows
-    public Map<Long, List<String>> groupPhoneCallsByPhone(Resource cdr) {
+    public Map<Long, List<String>> groupPhoneCallsByPhone(Resource resource) {
         Map<Long, List<String>> phoneCallsMap = new HashMap<>();
-        Scanner scanner = new Scanner(cdr.getInputStream());
-        while (scanner.hasNext()) {
-            String line = scanner.nextLine();
-            Long phoneNumber = getPhoneNumberFromLine(line);
-            if (!abonentService.isExistByPhoneNumber(phoneNumber)) {
-                continue;
+        try(Scanner scanner = new Scanner(resource.getInputStream())) {
+            while (scanner.hasNext()) {
+                String line = scanner.nextLine();
+                Long phoneNumber = getPhoneNumberFromLine(line);
+                if (!abonentService.isExistByPhoneNumber(phoneNumber)) {
+                    continue;
+                }
+                if (!phoneCallsMap.containsKey(phoneNumber)) {
+                    phoneCallsMap.put(phoneNumber, new ArrayList<>());
+                }
+                phoneCallsMap.get(phoneNumber).add(line);
             }
-            if (!phoneCallsMap.containsKey(phoneNumber)) {
-                phoneCallsMap.put(phoneNumber, new ArrayList<>());
-            }
-            phoneCallsMap.get(phoneNumber).add(line);
+        } catch (Exception e) {
+            log.error("PhoneCallGrouper: error parse file. Message: {}", e.getMessage());
+            throw new CdrPlusCreateException(String.format("Impossible to create cdr+ file. Error message: %s", e.getMessage()));
         }
         return phoneCallsMap;
     }

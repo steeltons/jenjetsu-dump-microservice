@@ -1,7 +1,7 @@
 package org.jenjetsu.com.brt.rest;
 
 import org.jenjetsu.com.core.dto.AbonentDto;
-import org.jenjetsu.com.core.service.AbonentPayloadService;
+import org.jenjetsu.com.core.logic.AbonentReportCreator;
 import org.jenjetsu.com.core.service.AbonentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.*;
 public class AbonentRestController {
 
     private final AbonentService abonentService;
+    private final AbonentReportCreator reportCreator;
 
-    public AbonentRestController(AbonentService abonentService) {
+    public AbonentRestController(AbonentService abonentService,
+                                 AbonentReportCreator reportCreator) {
         this.abonentService = abonentService;
+        this.reportCreator = reportCreator;
     }
 
     @PatchMapping("/pay")
@@ -26,7 +29,7 @@ public class AbonentRestController {
     @GetMapping("/report/{numberPhone}")
     @PreAuthorize("hasAnyAuthority('ROLE_MANAGER','ROLE_ABONENT')")
     public ResponseEntity<?> getReports(@PathVariable("numberPhone") Long numberPhone) {
-        return ResponseEntity.ok(abonentService.getMyPayloads(numberPhone));
+        return ResponseEntity.ok(reportCreator.getMyPayloads(numberPhone));
     }
 
 }

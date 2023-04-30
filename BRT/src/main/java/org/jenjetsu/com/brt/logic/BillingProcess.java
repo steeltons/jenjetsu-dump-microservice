@@ -1,20 +1,23 @@
 package org.jenjetsu.com.brt.logic;
 
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jenjetsu.com.core.dto.AbonentBillingDto;
 import org.jenjetsu.com.core.dto.BillingDto;
-import org.jenjetsu.com.core.entity.Abonent;
-import org.jenjetsu.com.core.entity.AbonentPayload;
-import org.jenjetsu.com.core.service.AbonentPayloadService;
-import org.jenjetsu.com.core.service.AbonentService;
+import org.jenjetsu.com.core.dto.CdrDto;
+import org.jenjetsu.com.core.entity.BillEntity;
+import org.jenjetsu.com.core.exception.BillReadFileException;
+import org.jenjetsu.com.core.exception.CdrPlusCreateException;
+import org.jenjetsu.com.core.logic.AbonentBiller;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+/**
+ * <h2>Billing process</h2>
+ * Class which start billing process and ends it.
+ */
 /**
  * <h2>Billing process</h2>
  * Class which start billing process and ends it.
@@ -23,50 +26,74 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BillingProcess {
 
-    private final FileMainpulator fileMainpulator;
+    private final CdrPlusFileWriter cdrPlusFileWriter;
     private final CdrFileGetter getter;
     private final CdrFileSender sender;
-    private final AbonentService abonentService;
+    private final AbonentBiller biller;
     private final PhoneCallGrouper phoneCallGrouper;
-    private final AbonentValidator abonentValidator;
-    private final AbonentPayloadService abonentPayloadService;
+    private final CdrDtoConverter cdrDtoConverter;
+    private final BillFileParser billFileParser;
 
-    public BillingProcess(FileMainpulator fileMainpulator, CdrFileGetter getter,
-                          CdrFileSender sender, AbonentService abonentService,
-                          PhoneCallGrouper phoneCallGrouper, AbonentValidator abonentValidator,
-                          AbonentPayloadService abonentPayloadService) {
-        this.fileMainpulator = fileMainpulator;
+    public BillingProcess(CdrPlusFileWriter cdrPlusFileWriter,
+                          CdrFileGetter getter,
+                          CdrFileSender sender,
+                          AbonentBiller biller,
+                          PhoneCallGrouper phoneCallGrouper,
+                          CdrDtoConverter cdrDtoConverter,
+                          BillFileParser billFileParser) {
+        this.cdrPlusFileWriter = cdrPlusFileWriter;
         this.getter = getter;
         this.sender = sender;
-        this.abonentService = abonentService;
+        this.biller = biller;
         this.phoneCallGrouper = phoneCallGrouper;
-        this.abonentValidator = abonentValidator;
-        this.abonentPayloadService = abonentPayloadService;
+        this.cdrDtoConverter = cdrDtoConverter;
+        this.billFileParser = billFileParser;
     }
 
     /**
      * <h2>Bill Abonents</h2>
      * Method that start and ends to bill abonents
-     * @return
+     * @return BillingDto - information of billed abonents
      */
-    @SneakyThrows
     public BillingDto billAbonents() {
-        log.info("Start billing");
-        abonentService.authorizeAbonents(); // Удалаем из бд пользователей с минимальным балансом
-        abonentPayloadService.deleteAll(); // Удалаем звонки из бд
-        Resource cdr = getter.getCdrFile(); // Получаем файл с CDR
-        Map<Long, List<String>> phoneCallsMap = phoneCallGrouper.groupPhoneCallsByPhone(cdr); // Парсим и группируем по номеру телефона
-        List<Resource> phoneCallsFile = fileMainpulator.createPhoneCallsFileList(phoneCallsMap); // Записываем звонки в CDR+
-        for (Resource resource : phoneCallsFile) {
-            Resource bill = sender.getBillFileFromHRS(resource); // Отправляем в HRS и получаем ответ
-            List<AbonentPayload> payloads = fileMainpulator.parsePayloadsFromFile(bill); // Парсим в Звонки
-            abonentValidator.validateAbonent(payloads); // Проверяем на минусовой баланс
-        }
-        List<Abonent> abonents = abonentService.findAll(); // Собираем оставшихся абонентов
-        List<AbonentBillingDto> abonentBillingDtoList = abonents.stream()
-                .map(a -> new AbonentBillingDto(a.getPhoneNumber(), a.getBalance()))
-                .collect(Collectors.toList());
-        log.info("End billing");
-        return new BillingDto(abonentBillingDtoList);
+        log.info("START BILLING");
+        Resource cdrFile = getter.getCdrFilePath();
+        Resource cdrPlusFile = createCdrPlusFile(cdrFile);
+
+        log.info("SENDING CDR+ FILE TO HRS");
+        Resource billFile = sender.getBillFileFromHRS(cdrPlusFile);
+
+        BillingDto billingDto = getBillingDto(billFile);
+        log.info("END BILLING");
+        return billingDto;
     }
+
+    /**
+     * <h2>Create cdr plus file</h2>
+     * Method which get cdr file from CDR and create cdr+ file
+     * @param resource - cdr byte file
+     * @return cdr+ byte file
+     * @throws CdrPlusCreateException - impossible to parse cdr file or create cdr+ file
+     */
+    private Resource createCdrPlusFile(Resource resource) throws CdrPlusCreateException {
+        Map<Long, List<String>> phoneCallsMap = phoneCallGrouper.groupPhoneCallsByPhone(resource);
+        Collection<CdrDto> cdrDtos = cdrDtoConverter.convertCallsMapToCdrs(phoneCallsMap);
+        Resource returnResource = cdrPlusFileWriter.writeCdrDtosToResource(cdrDtos);
+        cdrPlusFileWriter.writeCdrResourceToDisk(returnResource);
+        return returnResource;
+    }
+
+    /**
+     * <h2>Get billing dto</h2>
+     * Method which parse bill file, check abonent balance and collect billed abonents to BillingDto
+     * @param billFile - bill byte file
+     * @return BillingDto - information of billed abonents
+     * @throws BillReadFileException - impossible to parse bill file
+     */
+    private BillingDto getBillingDto(Resource billFile) throws BillReadFileException {
+        Collection<BillEntity> billEntities = billFileParser.parseBillFileToBillEntities(billFile);
+        BillingDto billingDto = biller.billAbonents(billEntities);
+        return billingDto;
+    }
+
 }
