@@ -1,5 +1,6 @@
 package org.jenjetsu.com.cdr2.rest.advice;
 
+import org.jenjetsu.com.core.exception.CdrCreateException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -10,8 +11,8 @@ import java.io.IOException;
 @RestControllerAdvice
 public class MainControllerAdvice {
 
-    @ExceptionHandler(value = IOException.class)
+    @ExceptionHandler(value = CdrCreateException.class)
     public ResponseEntity<?> handleIOException() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Create file error");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Impossible to create cdr file");
     }
 }

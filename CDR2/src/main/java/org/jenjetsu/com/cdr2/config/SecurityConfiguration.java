@@ -19,6 +19,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests()
                 .requestMatchers("/api/v1/get-calls").permitAll()
                 .requestMatchers("/api/v1/generate").permitAll()
+                .requestMatchers("/api/v1/generate-calls").permitAll()
                 .anyRequest().authenticated();
         return http.build();
     }

@@ -2,6 +2,7 @@ package org.jenjetsu.com.cdr2.logic;
 
 import com.github.javafaker.Faker;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.jenjetsu.com.core.entity.CallInformation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
@@ -18,6 +19,7 @@ import java.util.*;
  */
 @Service
 @Scope("prototype")
+@Slf4j
 public class CallInfoCreator {
 
     private final Long MIN_CALLING_DURATION_SECONDS;
@@ -61,8 +63,8 @@ public class CallInfoCreator {
      * @param phoneNumbers - Collection of phone Number
      * @return Set of calls for phone numbers
      */
-    @SneakyThrows
-    public Set<CallInformation> createSetOfCallInformation(Collection<Long> phoneNumbers) {
+    public Collection<CallInformation> createSetOfCallInformation(Collection<Long> phoneNumbers) {
+        log.info("CallInfoCreator: start generating phone calls list");
         Faker faker = new Faker();
         Random random = new Random();
         Set<CallInformation> output = new HashSet<>();
@@ -83,6 +85,7 @@ public class CallInfoCreator {
             }
             output.addAll(calls);
         }
+        log.info("CallinfoCreator: total created calls: {}",output.size());
         return output;
     }
     private long randomCallingDurationInSeconds() {

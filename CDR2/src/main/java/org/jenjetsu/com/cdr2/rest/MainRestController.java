@@ -1,7 +1,7 @@
 package org.jenjetsu.com.cdr2.rest;
 
 import org.jenjetsu.com.cdr2.logic.AbonentGenerator;
-import org.jenjetsu.com.cdr2.logic.CdrFileCreator;
+import org.jenjetsu.com.cdr2.logic.CdrCreator;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,12 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class MainRestController {
 
-    private final CdrFileCreator cdrFileCreator;
     private final AbonentGenerator abonentGenerator;
+    private final CdrCreator cdrCreator;
 
-    public MainRestController(CdrFileCreator cdrFileCreator, AbonentGenerator abonentGenerator) {
-        this.cdrFileCreator = cdrFileCreator;
+    public MainRestController(AbonentGenerator abonentGenerator, CdrCreator cdrCreator) {
         this.abonentGenerator = abonentGenerator;
+        this.cdrCreator = cdrCreator;
     }
 
     /**
@@ -33,7 +33,7 @@ public class MainRestController {
     public ResponseEntity<?> getCalls() {
         return ResponseEntity.ok()
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(cdrFileCreator.createCdrFile());
+                .body(cdrCreator.createCdrFile());
     }
 
     @GetMapping("/generate")

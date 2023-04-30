@@ -26,7 +26,7 @@ public class AbonentGenerator {
         List<AbonentDto> dtos = new ArrayList<>();
         Random random = new Random();
         for(Long phone :phones) {
-            double sum = random.nextDouble(-100, 1000);
+            double sum = Math.round(random.nextDouble(-100, 1000) * 100) / 100.0;
             String tariff = tariffs[random.nextInt(0,3)];
             AbonentDto dto = new AbonentDto(phone, tariff, sum);
             dtos.add(dto);
