@@ -1,7 +1,7 @@
 package org.jenjetsu.com.hrs;
 
 import org.jenjetsu.com.core.exception.BillFileCreateException;
-import org.jenjetsu.com.hrs.logic.BillFileCreator;
+import org.jenjetsu.com.hrs.logic.BillFileManipulator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ApiTest {
 
     @MockBean
-    private BillFileCreator fileCreator;
+    private BillFileManipulator fileCreator;
     @Autowired
     private MockMvc mockMvc;
     @Autowired

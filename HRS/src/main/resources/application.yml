@@ -1,0 +1,39 @@
+server:
+  port: 8500
+
+spring:
+  application:
+    name: HRS
+  datasource:
+    url: jdbc:postgresql://localhost:5001/brt_database?characterEncoding=utf8
+    driver-class-name: org.postgresql.Driver
+    username: Stey
+    password: 1228
+  rabbitmq:
+    host: localhost
+    username: rmuser
+    password: rmpassword
+    port: 5672
+    senders:
+      brt-bill-queue: billQueue
+    queue:
+      names: generateBill
+
+eureka:
+  client:
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jenjetsu:
+  debug:
+    show-cdr-file: false
+    cdr-file-path: src/main/resources/bill
+
+minio:
+  url: http://localhost:9090
+  port: 9000
+  bucketName: trash
+  access-key: A7X1gEDKfn5awI6gx90g
+  secret-key: rUXIB6fDMUNBvgouxskbzR4G5uwRlCxU1LueUffs
+  secure: false

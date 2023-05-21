@@ -1,14 +1,13 @@
 package org.jenjetsu.com.hrs.logic;
 
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jenjetsu.com.core.entity.CallInformation;
 import org.jenjetsu.com.core.exception.BillFileCreateException;
 import org.jenjetsu.com.core.exception.CdrPlusCreateException;
 import org.jenjetsu.com.hrs.logic.entity.CdrPlusEntity;
 import org.jenjetsu.com.core.util.CallInformationParser;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,7 @@ import java.util.Scanner;
 @Slf4j
 public class CdrPlusFileParser {
 
-    public List<CdrPlusEntity> parseCdrPlusFile(MultipartFile cdrPlusFile) {
+    public List<CdrPlusEntity> parseCdrPlusFile(Resource cdrPlusFile) {
         List<CdrPlusEntity> cdrPlusEntities = new ArrayList<>();
         try(Scanner scanner = new Scanner(cdrPlusFile.getInputStream())) {
             if(!scanner.hasNext()) {
@@ -40,7 +39,7 @@ public class CdrPlusFileParser {
                 }
                 cdrPlusEntities.add(new CdrPlusEntity(phoneNumber, tariffId, calls));
             }
-            log.info("CdrPlusFileParser: parse cdr+ file {}", cdrPlusFile.getName());
+            log.info("CdrPlusFileParser: parse cdr+ file {}", cdrPlusFile.getFilename());
         } catch (Exception e) {
             log.error("CdrPlusFileParser: ERROR IN PRASING CDR PLUS FILE. Error message: {}", e.getMessage());
             throw new BillFileCreateException(String.format("Impossible to create bill file. Error message: %s", e.getMessage()));
