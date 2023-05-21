@@ -1,25 +1,22 @@
 package org.jenjetsu.com.brt;
 
-import lombok.extern.slf4j.Slf4j;
-import org.jenjetsu.com.brt.logic.BillingProcess;
-import org.jenjetsu.com.core.entity.Abonent;
-import org.jenjetsu.com.core.service.AbonentService;
+import org.jenjetsu.com.brt.broker.sender.CdrMessageSender;
+import org.jenjetsu.com.core.config.EnableMinIo;
+import org.jenjetsu.com.core.config.EnableRabbitMq;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.ApplicationContext;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication(scanBasePackages = {"org.jenjetsu.com.core", "org.jenjetsu.com.brt"})
 @EnableDiscoveryClient
-@EnableCaching
+@EnableCaching @EnableMinIo @EnableRabbitMq
 public class BrtApplication {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         ApplicationContext context = SpringApplication.run(BrtApplication.class, args);
-        context.getBean(BillingProcess.class).billAbonents();
+//        context.getBean(CdrMessageSender.class).sendGenerateCdrFileCommand();
     }
 
 }

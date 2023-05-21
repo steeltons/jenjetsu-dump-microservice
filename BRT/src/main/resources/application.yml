@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: brt server
+  jpa:
+    hibernate:
+      ddl-auto: none
+  datasource:
+    url: jdbc:postgresql://localhost:5001/brt_database?characterEncoding=utf8
+    driver-class-name: org.postgresql.Driver
+    username: Stey
+    password: 1228
+  rabbitmq:
+    host: localhost
+    username: rmuser
+    password: rmpassword
+    port: 5672
+    senders:
+      cdr-cdr-queue: generateCdr
+      cdr-abonent-queue: generateAbonents
+      hrs-bill-queue: generateBill
+    queue:
+      names: cdrQueue,billQueue,abonentsQueue
+
+server:
+  port: 8080
+
+jenjetsu:
+  debug:
+    show-cdr-file: true
+    cdr-file-path: src/main/resources/cdrPlus
+
+minio:
+  url: http://localhost:9090
+  port: 9000
+  bucketName: trash
+  access-key: A7X1gEDKfn5awI6gx90g
+  secret-key: rUXIB6fDMUNBvgouxskbzR4G5uwRlCxU1LueUffs
+  secure: false
+

@@ -1,5 +1,9 @@
 package org.jenjetsu.com.brt.rest;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.AllArgsConstructor;
+import org.jenjetsu.com.brt.broker.sender.CdrMessageSender;
 import org.jenjetsu.com.brt.logic.*;
 import org.jenjetsu.com.core.dto.AbonentDto;
 import org.jenjetsu.com.core.dto.CommandDto;
@@ -15,18 +19,13 @@ import java.util.Arrays;
 import java.util.List;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/api/v1/manager")
 public class ManagerRestController {
 
     private final AbonentService abonentService;
-    private final BillingProcess billingProcess;
     private final RestTemplate restTemplate;
-
-    public ManagerRestController(AbonentService abonentService, BillingProcess billingProcess, RestTemplate restTemplate) {
-        this.abonentService = abonentService;
-        this.billingProcess = billingProcess;
-        this.restTemplate = restTemplate;
-    }
+    private final BillingProcess billingProcess;
 
     @PatchMapping("/changeTariff")
     @PreAuthorize("hasAuthority('ROLE_MANAGER')")
@@ -36,11 +35,16 @@ public class ManagerRestController {
 
     @PatchMapping("/billing")
     @PreAuthorize("hasAuthority('ROLE_MANAGER')")
-    public ResponseEntity<?> startBilling(@RequestBody CommandDto command) throws IOException {
-        if(command.message() != null && command.message().equals("run"))
-            return ResponseEntity.ok(billingProcess.billAbonents());
-        else
+    public ResponseEntity<?> startBilling(@RequestBody CommandDto command,
+                                          HttpServletRequest request,
+                                          HttpServletResponse response){
+        if(command.message() != null && command.message().equals("run")) {
+            billingProcess.startBilling(request, response);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+        }
+        else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not run command");
+        }
     }
 
     @PostMapping("/generate")

@@ -1,99 +1,72 @@
 package org.jenjetsu.com.brt.logic;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.core5.http.ContentType;
+import org.jenjetsu.com.brt.broker.sender.CdrMessageSender;
 import org.jenjetsu.com.core.dto.BillingDto;
-import org.jenjetsu.com.core.dto.CdrDto;
-import org.jenjetsu.com.core.entity.BillEntity;
-import org.jenjetsu.com.core.exception.BillReadFileException;
-import org.jenjetsu.com.core.exception.CdrPlusCreateException;
-import org.jenjetsu.com.core.logic.AbonentBiller;
-import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * <h2>Billing process</h2>
- * Class which start billing process and ends it.
- */
-/**
- * <h2>Billing process</h2>
- * Class which start billing process and ends it.
- */
 @Service
 @Slf4j
 public class BillingProcess {
 
-    private final CdrPlusFileWriter cdrPlusFileWriter;
-    private final CdrFileGetter getter;
-    private final CdrFileSender sender;
-    private final AbonentBiller biller;
-    private final PhoneCallGrouper phoneCallGrouper;
-    private final CdrDtoConverter cdrDtoConverter;
-    private final BillFileParser billFileParser;
+    private AtomicBoolean isBillingProcessStart;
+    private final CdrMessageSender cdrMessageSender;
+    private final ObjectMapper objectMapper;
+    private final ConcurrentLinkedQueue<AsyncContext> asyncContextConcurrentLinkedQueue;
 
-    public BillingProcess(CdrPlusFileWriter cdrPlusFileWriter,
-                          CdrFileGetter getter,
-                          CdrFileSender sender,
-                          AbonentBiller biller,
-                          PhoneCallGrouper phoneCallGrouper,
-                          CdrDtoConverter cdrDtoConverter,
-                          BillFileParser billFileParser) {
-        this.cdrPlusFileWriter = cdrPlusFileWriter;
-        this.getter = getter;
-        this.sender = sender;
-        this.biller = biller;
-        this.phoneCallGrouper = phoneCallGrouper;
-        this.cdrDtoConverter = cdrDtoConverter;
-        this.billFileParser = billFileParser;
+    public BillingProcess(CdrMessageSender cdrMessageSender,
+                          ObjectMapper objectMapper) {
+        this.cdrMessageSender = cdrMessageSender;
+        this.objectMapper = objectMapper;
+        this.isBillingProcessStart = new AtomicBoolean(false);
+        asyncContextConcurrentLinkedQueue = new ConcurrentLinkedQueue<>();
     }
 
-    /**
-     * <h2>Bill Abonents</h2>
-     * Method that start and ends to bill abonents
-     * @return BillingDto - information of billed abonents
-     */
-    public BillingDto billAbonents() {
-        log.info("START BILLING");
-        Resource cdrFile = getter.getCdrFilePath();
-        Resource cdrPlusFile = createCdrPlusFile(cdrFile);
-
-        log.info("SENDING CDR+ FILE TO HRS");
-        Resource billFile = sender.getBillFileFromHRS(cdrPlusFile);
-
-        BillingDto billingDto = getBillingDto(billFile);
-        log.info("END BILLING");
-        return billingDto;
+    public void startBilling(HttpServletRequest request, HttpServletResponse response) {
+        if(!isBillingProcessStart.getAcquire()) {
+            isBillingProcessStart.set(true);
+            cdrMessageSender.sendGenerateCdrFileCommand();
+        }
+        AsyncContext asyncContext = request.startAsync();
+        asyncContext.setTimeout(2 * 60 * 1000l);
+        asyncContextConcurrentLinkedQueue.add(asyncContext);
     }
 
-    /**
-     * <h2>Create cdr plus file</h2>
-     * Method which get cdr file from CDR and create cdr+ file
-     * @param resource - cdr byte file
-     * @return cdr+ byte file
-     * @throws CdrPlusCreateException - impossible to parse cdr file or create cdr+ file
-     */
-    private Resource createCdrPlusFile(Resource resource) throws CdrPlusCreateException {
-        Map<Long, List<String>> phoneCallsMap = phoneCallGrouper.groupPhoneCallsByPhone(resource);
-        Collection<CdrDto> cdrDtos = cdrDtoConverter.convertCallsMapToCdrs(phoneCallsMap);
-        Resource returnResource = cdrPlusFileWriter.writeCdrDtosToResource(cdrDtos);
-        cdrPlusFileWriter.writeCdrResourceToDisk(returnResource);
-        return returnResource;
+    public void endBilling(BillingDto billingDto) {
+        asyncContextConcurrentLinkedQueue.forEach(asyncContext -> notify(asyncContext, billingDto));
+        asyncContextConcurrentLinkedQueue.clear();
+        isBillingProcessStart.set(false);
     }
 
-    /**
-     * <h2>Get billing dto</h2>
-     * Method which parse bill file, check abonent balance and collect billed abonents to BillingDto
-     * @param billFile - bill byte file
-     * @return BillingDto - information of billed abonents
-     * @throws BillReadFileException - impossible to parse bill file
-     */
-    private BillingDto getBillingDto(Resource billFile) throws BillReadFileException {
-        Collection<BillEntity> billEntities = billFileParser.parseBillFileToBillEntities(billFile);
-        BillingDto billingDto = biller.billAbonents(billEntities);
-        return billingDto;
+    // TODO rewrite method
+    private void notify(AsyncContext asyncContext, BillingDto billingDto) {
+        HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
+        try {
+            String value = objectMapper.writeValueAsString(billingDto);
+            response.setStatus(HttpStatus.OK.value());
+            response.setContentType(ContentType.APPLICATION_JSON.toString());
+            response.getWriter().write(value);
+            response.getWriter().flush();
+            asyncContext.complete();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            try {
+                response.sendError(500, "Error writing json dto");
+                log.error("BillingDtoSubscriber: ERROR CONVERTING DTO TO JSON. CHECK MAPPER!");
+            } catch (IOException e1) {
+            }
+        }
     }
-
 }
