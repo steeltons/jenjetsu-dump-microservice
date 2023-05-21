@@ -24,7 +24,7 @@ public class Tariff {
     private double inputCost;
     @Min(0)
     private double outputCost;
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "tariff")
+    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "tariff")
     private List<TariffOption> options;
     @Column(name = "monetary_unit", nullable = false, length = 12)
     private String monetaryUnit;
