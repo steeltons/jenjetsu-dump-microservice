@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5001/brt_database?characterEncoding=utf8
+    driver-class-name: org.postgresql.Driver
+    username: Stey
+    password: 1228
+  application:
+    name: CDR
+  rabbitmq:
+    host: localhost
+    username: rmuser
+    password: rmpassword
+    port: 5672
+    senders:
+      brt-cdr-queue: cdrQueue
+      brt-abonents-queue: abonentsQueue
+    queue:
+      names: generateCdr,generateAbonents
+
+server:
+  port: 8700
+
+minio:
+  url: http://localhost:9090
+  port: 9000
+  bucketName: trash
+  access-key: A7X1gEDKfn5awI6gx90g
+  secret-key: rUXIB6fDMUNBvgouxskbzR4G5uwRlCxU1LueUffs
+  secure: false
+
+eureka:
+  client:
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+
+CallInfoCreator:
+  min-call-duration-seconds: 10
+  max-call-duration-seconds: 200
+  min-call-date: 2022-01-01
+  max-call-date: 2022-12-31
+  min-phone-calls: 3
+  max-phone-calls: 20
+
+PhoneNumberCreator:
+  min-call-numbers: 300
+  max-call-numbers: 500
+  phone-pattern: 79146878###
+
+jenjetsu:
+  debug:
+    show-cdr-file: true
+    cdr-file-path: src/main/resources/cdr

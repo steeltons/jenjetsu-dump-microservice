@@ -1,8 +1,9 @@
 package org.jenjetsu.com.cdr2.rest;
 
 import org.jenjetsu.com.cdr2.logic.AbonentGenerator;
-import org.jenjetsu.com.cdr2.logic.CdrCreator;
+import org.jenjetsu.com.cdr2.logic.CdrFileManipulator;
 import org.jenjetsu.com.core.dto.PhoneNumbersDto;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,30 +17,34 @@ import org.springframework.web.bind.annotation.*;
 public class MainRestController {
 
     private final AbonentGenerator abonentGenerator;
-    private final CdrCreator cdrCreator;
+    private final CdrFileManipulator cdrFileManipulator;
 
-    public MainRestController(AbonentGenerator abonentGenerator, CdrCreator cdrCreator) {
+    public MainRestController(AbonentGenerator abonentGenerator, CdrFileManipulator cdrFileManipulator) {
         this.abonentGenerator = abonentGenerator;
-        this.cdrCreator = cdrCreator;
+        this.cdrFileManipulator = cdrFileManipulator;
     }
 
     /**
      * <h2>Get calls</h2>
      * Create Cdr file with calls and return it
      * @return ByteArrayResource - file with calls
+     * @Deprecated - now RabbitMq broker messenger accept all commands.
      */
     @GetMapping("/get-calls")
+    @Deprecated(forRemoval = true)
     public ResponseEntity<?> getCalls() {
-        return ResponseEntity.ok()
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(cdrCreator.createCdrFile());
+//        return ResponseEntity.ok()
+//                .contentType(MediaType.MULTIPART_FORM_DATA)
+//                .body(cdrCreator.createCdrFile());
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
     }
 
     @PostMapping("/generate-calls")
+    @Deprecated(forRemoval = true)
     public ResponseEntity<?> generateCalls(@RequestBody PhoneNumbersDto phoneNumbersDto) {
         return ResponseEntity.ok()
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(cdrCreator.createCdrFileByPhoneNumbers(phoneNumbersDto));
+                .body(cdrFileManipulator.createCdrFileByPhoneNumbers(phoneNumbersDto));
     }
 
     @GetMapping("/generate")

@@ -21,9 +21,11 @@ import java.util.UUID;
 /**
  * <h2>Cdr file writer</h2>
  * Class that write cdr file repository resource folder
+ * @deprecated - now all files saves at S3 storage.
  */
 @Service
 @Slf4j
+@Deprecated(forRemoval = true)
 public class CdrFileWriter {
 
     private final File fileDirectory;
@@ -41,7 +43,9 @@ public class CdrFileWriter {
      * <h2>Write calls and get path</h2>
      * Write resource into physic file
      * @param resource - byte version of cdr file
+     * @deprecated - cdr file exists in s3 storage so there is no need to save file in system.
      */
+    @Deprecated(forRemoval = true)
     public void createPhysicalFile(Resource resource) {
         if(!SHOW_CDR_FILE) {
             return;
